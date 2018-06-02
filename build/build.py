@@ -79,7 +79,10 @@ def __buildProject( project, buildDir ) :
 	shutil.copy( config["license"], os.path.join( buildDir, "doc/licenses", project ) )
 
 	for patch in glob.glob( "../../patches/*.patch" ) :
-		subprocess.check_call( "patch -p1 < {patch}".format( patch = patch ), shell = True )
+		if not sys.platform == "win32" :
+			subprocess.check_call( "patch -p1 < {patch}".format( patch = patch ), shell = True )
+		else :
+			subprocess.check_call( "git-apply -p1 < {patch}".format( patch = patch ), shell = True )
 
 	if sys.platform == "win32" and "LD_LIBRARY_PATH" in config["environment"] :
 		config["environment"]["PATH"] = "{0};{1}".format( config["environment"]["LD_LIBRARY_PATH"], os.environ["PATH"] )
