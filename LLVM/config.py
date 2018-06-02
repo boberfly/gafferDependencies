@@ -15,12 +15,13 @@
 		"mv ../cfe* tools/clang",
 		"mkdir build",
 		"cd build &&"
-		 	" cmake"
-		 	" -DCMAKE_INSTALL_PREFIX=$BUILD_DIR"
-		 	" -DCMAKE_BUILD_TYPE=Release"
-			" -DLLVM_ENABLE_RTTI=ON"
-		 	" ..",
-		"cd build && make install -j `getconf _NPROCESSORS_ONLN`"
+			" cmake"
+			" -G $CMAKE_GENERATOR"
+			" -D CMAKE_INSTALL_PREFIX=$BUILD_DIR"
+			" -D CMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE"
+			" -D LLVM_ENABLE_RTTI=ON"
+			" ..",
+		"cd build && cmake --build . --config $CMAKE_BUILD_TYPE --target install -- -j $NUM_PROCESSORS"
 
 	],
 
