@@ -1,0 +1,83 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b904fb2..fdbd717 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -121,6 +121,7 @@ option (USE_STATIC_BOOST                    "Use static Boost libraries"
+ option (USE_STATIC_OIIO                     "Use static OpenImageIO libraries"                      ON)
+ option (USE_STATIC_OCIO                     "Use static OpenColorIO libraries"                      ON)
+ option (USE_STATIC_OSL                      "Use static OpenShadingLanguage libraries"              ON)
++option (USE_STATIC_EXR                      "Use static OpenEXR libraries"                          ON)
+ option (WARNINGS_AS_ERRORS                  "Treat compiler warnings as errors"                     ON)
+ 
+ option (HIDE_SYMBOLS                        "When using gcc, hide symbols not on the public API"    ON)
+@@ -191,6 +192,9 @@ set (Boost_MULTITHREADED TRUE)
+ 
+ if (USE_STATIC_BOOST)
+     set (Boost_USE_STATIC_LIBS TRUE)
++    add_definitions(-DBOOST_PYTHON_STATIC_LIB) # link statically against Boost.Python
++else ()
++    add_definitions(-DBOOST_ALL_DYN_LINK)
+ endif ()
+ 
+ set (BOOST_NEEDED_LIBS atomic chrono date_time filesystem regex system thread wave)
+@@ -224,6 +228,9 @@ endif ()
+ if (USE_EXTERNAL_EXR)
+     find_package (Imath REQUIRED)
+     find_package (OpenEXR REQUIRED)
++    if (NOT USE_STATIC_EXR AND MSVC)
++        add_definitions(-DOPENEXR_DLL)
++    endif ()
+ endif ()
+ 
+ if (USE_EXTERNAL_XERCES)
+diff --git a/cmake/config/win-vs.txt b/cmake/config/win-vs.txt
+index bc1e7af..2662417 100644
+--- a/cmake/config/win-vs.txt
++++ b/cmake/config/win-vs.txt
+@@ -61,7 +61,6 @@ set (preprocessor_definitions_common
+     _USRDLL
+     _WINDOWS
+     XERCES_STATIC_LIBRARY                   # link statically against Xerces-C
+-    BOOST_PYTHON_STATIC_LIB                 # link statically against Boost.Python
+ )
+ 
+ # Release configuration.
+@@ -383,8 +382,8 @@ macro (add_copy_target_exe_to_sandbox_command target)
+     # Copy the .exe and the PDB file (except in Ship configuration).
+     add_custom_command (TARGET ${target} POST_BUILD
+         COMMAND if not exist "${bin_path}" mkdir "${bin_path}"
+-        COMMAND ${CMAKE_COMMAND} -E copy "$(TargetPath)" "${bin_path}"
+-        COMMAND if not "$(Configuration)" == "Ship" copy /Y "$(TargetDir)\$(TargetName).pdb" "${bin_path}"
++        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target}> "${bin_path}"
++        COMMAND if not $<CONFIG> == "Ship" ${CMAKE_COMMAND} -E copy "$<TARGET_PDB_FILE:${target}>" "${bin_path}"
+     )
+ endmacro ()
+ 
+@@ -393,15 +392,15 @@ macro (add_copy_target_lib_to_sandbox_command target)
+     get_sandbox_bin_path (bin_path)
+     add_custom_command (TARGET ${target} POST_BUILD
+         COMMAND if not exist "${bin_path}" mkdir "${bin_path}"
+-        COMMAND ${CMAKE_COMMAND} -E copy "$(TargetPath)" "${bin_path}"
+-        COMMAND if not "$(Configuration)" == "Ship" copy /Y "$(TargetDir)\$(TargetName).pdb" "${bin_path}"
++        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target}> "${bin_path}"
++        COMMAND if not $<CONFIG> == "Ship" ${CMAKE_COMMAND} -E copy "$<TARGET_PDB_FILE:${target}>" "${bin_path}"
+     )
+ 
+     # Copy the import library.
+     get_sandbox_lib_path (lib_path)
+     add_custom_command (TARGET ${target} POST_BUILD
+         COMMAND if not exist "${lib_path}" mkdir "${lib_path}"
+-        COMMAND ${CMAKE_COMMAND} -E copy "$(TargetDir)\$(TargetName).lib" "${lib_path}"
++        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_LINKER_FILE:${target}>" "${lib_path}"
+     )
+ endmacro ()
+ 
+@@ -412,7 +411,7 @@ macro (add_copy_target_to_sandbox_py_module_command target module_name)
+ 
+     add_custom_command (TARGET ${target} POST_BUILD
+         COMMAND ${CMAKE_COMMAND} -E make_directory "${module_path}"
+-        COMMAND ${CMAKE_COMMAND} -E copy "$(TargetPath)" "${module_path}"
++        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target}> "${module_path}"
+     )
+ endmacro ()
+ 
