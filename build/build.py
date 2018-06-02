@@ -31,7 +31,11 @@ def __buildProject( project, buildDir ) :
 
 	with open( project + "/config.py" ) as f :
 		config =f.read()
-	config = eval( config )
+
+	configContext = {
+		"platform" : "osx" if sys.platform == "darwin" else "linux"
+	}
+	config = eval( config, configContext, configContext )
 
 	# Some Win32-specific tweaks need to be done to the config files
 	if sys.platform == "win32":
@@ -88,7 +92,8 @@ def __buildProject( project, buildDir ) :
 		config["environment"]["PATH"] = "{0};{1}".format( config["environment"]["LD_LIBRARY_PATH"], os.environ["PATH"] )
 
 	environment = os.environ.copy()
-	environment.update( config.get( "environment", {} ) )
+	for key, value in config.get( "environment", {} ).items() :
+		environment[key] = value.replace( "$BUILD_DIR", buildDir )
 	environment["BUILD_DIR"] = buildDir
 
 	environment["NUM_PROCESSORS"] = multiprocessing.cpu_count()
