@@ -16,7 +16,7 @@ def __projects() :
 def __decompress( archive ) :
 
 	command = "tar -xvf {archive}".format( archive=archive )
-	if sys.platform == "win32":
+	if sys.platform == "win32" :
 		command = "cmake -E tar xvf {archive}".format( archive=archive )
 
 	sys.stderr.write( command + "\n" )
@@ -24,7 +24,7 @@ def __decompress( archive ) :
 	files = [ f for f in files.split( "\n" ) if f ]
 	files = [ f[2:] if f.startswith( "x " ) else f for f in files ]
 	dirs = { f.split( "/" )[0] for f in files }
-	assert( len( dirs ) ==  1 )
+	#assert( len( dirs ) ==  1 )
 	return next( iter( dirs ) )
 
 def __buildProject( project, buildDir ) :
@@ -60,7 +60,7 @@ def __buildProject( project, buildDir ) :
 	os.makedirs( workingDir )
 	os.chdir( workingDir )
 
-	decompressedArchives = [ __decompress( "../../" + a ) for a in archives ]
+	decompressedArchives = [ __decompress( os.path.join( "..", "..", a ) ) for a in archives ]
 	os.chdir( decompressedArchives[0] )
 
 	licenseDir = os.path.join( buildDir, "doc", "licenses" )
