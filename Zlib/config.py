@@ -6,13 +6,13 @@
 
 	],
 
-	"license" : "LICENSE",
+	"license" : "README",
 
 	"commands" : [
 
 		"mkdir gafferBuild",
 
-		"cd build &&"
+		"cd gafferBuild &&"
 			" cmake"
 			" -G $CMAKE_GENERATOR"
 			" -D CMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE"

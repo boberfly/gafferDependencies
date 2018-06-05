@@ -37,23 +37,6 @@ def __buildProject( project, buildDir ) :
 	}
 	config = eval( config, configContext, configContext )
 
-	# Some Win32-specific tweaks need to be done to the config files
-	if sys.platform == "win32":
-		for command in config["commands"] :
-			# Forward-slashes to backslashes
-			command.replace( "/", "\\" )
-			# Environment variables differ in Windows
-			command.replace( "$BUILD_DIR", "\%BUILD_DIR\%" )
-			command.replace( "$NUM_PROCESSORS", "\%NUM_PROCESSORS\%" )
-			# mv is move
-			command.replace( "mv ", "move " )
-
-		for environ in config["environment"].itervalues() :
-			# Forward-slashes to backslashes
-			environ.replace( "/", "\\" )
-			# Environment variables differ in Windows
-			environ.replace( "$BUILD_DIR", "\%BUILD_DIR\%" )
-
 	archiveDir = project + "/archives"
 	if not os.path.exists( archiveDir ) :
 		os.makedirs( archiveDir )
@@ -80,7 +63,10 @@ def __buildProject( project, buildDir ) :
 	decompressedArchives = [ __decompress( "../../" + a ) for a in archives ]
 	os.chdir( decompressedArchives[0] )
 
-	shutil.copy( config["license"], os.path.join( buildDir, "doc/licenses", project ) )
+	licenseDir = os.path.join( buildDir, "doc", "licenses" )
+	if not os.path.exists( licenseDir ) :
+		os.makedirs( licenseDir )
+	shutil.copy( config["license"], os.path.join( licenseDir, project ) )
 
 	for patch in glob.glob( "../../patches/*.patch" ) :
 		if not sys.platform == "win32" :
@@ -88,7 +74,7 @@ def __buildProject( project, buildDir ) :
 		else :
 			subprocess.check_call( "git-apply -p1 < {patch}".format( patch = patch ), shell = True )
 
-	if sys.platform == "win32" and "LD_LIBRARY_PATH" in config["environment"] :
+	if sys.platform == "win32" and "LD_LIBRARY_PATH" in config.get( "environment", {} ) :
 		config["environment"]["PATH"] = "{0};{1}".format( config["environment"]["LD_LIBRARY_PATH"], os.environ["PATH"] )
 
 	environment = os.environ.copy()
@@ -96,7 +82,7 @@ def __buildProject( project, buildDir ) :
 		environment[key] = value.replace( "$BUILD_DIR", buildDir )
 	environment["BUILD_DIR"] = buildDir
 
-	environment["NUM_PROCESSORS"] = multiprocessing.cpu_count()
+	environment["NUM_PROCESSORS"] = str( multiprocessing.cpu_count() )
 
 	if not sys.platform == "win32" :
 		environment["CMAKE_GENERATOR"] = "\"Unix Makefiles\""
@@ -105,7 +91,27 @@ def __buildProject( project, buildDir ) :
 
 	environment["CMAKE_BUILD_TYPE"] = "Release"
 
+	if sys.platform == "win32":
+		for environ in config.get( "environment", {} ).itervalues() :
+			# Forward-slashes to backslashes
+			environ = environ.replace( "/", "\\" )
+			# Environment variables differ in Windows
+			environ = environ.replace( "$BUILD_DIR", "%BUILD_DIR%" )
+
 	for command in config["commands"] :
+		# Some Win32-specific tweaks need to be done to the config files
+		if sys.platform == "win32":
+			# Forward-slashes to backslashes
+			command = command.replace( "/", "\\" )
+			# Environment variables differ in Windows
+			command = command.replace( "$BUILD_DIR", "%BUILD_DIR%" )
+			command = command.replace( "$NUM_PROCESSORS", "%NUM_PROCESSORS%" )
+			command = command.replace( "$CMAKE_GENERATOR", "%CMAKE_GENERATOR%" )
+			command = command.replace( "$CMAKE_BUILD_TYPE", "%CMAKE_BUILD_TYPE%" )
+			# mv is move
+			command = command.replace( "mv ", "move " )
+			print command
+
 		sys.stderr.write( command + "\n" )
 		subprocess.check_call( command, shell = True, env = environment )
 
