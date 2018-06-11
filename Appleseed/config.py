@@ -13,7 +13,7 @@
 		# Needed so that `oslc` can be run to compile
 		# shaders during the build.
 		"DYLD_FALLBACK_LIBRARY_PATH" : "$BUILD_DIR/lib",
-		"LD_LIBRARY_PATH" : "$BUILD_DIR/lib",
+		"LD_LIBRARY_PATH" : "$BUILD_DIR/lib" if not platform == "win32" else "$BUILD_DIR\\lib;$BUILD_DIR\\bin",
 
 		# Appleseed embeds minizip, which appears to require a later version
 		# of zlib than CentOS 6 provides. These defines disable encryption,
@@ -23,7 +23,7 @@
 
 		# Make sure we pick up the python headers from $BUILD_DIR,
 		# rather than any system level headers.
-		"PYTHON_INCLUDE_DIR" : "$BUILD_DIR/lib/Python.framework/Headers" if platform == "osx" else "$BUILD_DIR/include/python2.7"
+		"PYTHON_INCLUDE_DIR" : "$BUILD_DIR/lib/Python.framework/Headers" if platform == "osx" else "$BUILD_DIR/include" if platform == "win32" else "$BUILD_DIR/include/python2.7"
 
 	},
 
@@ -33,7 +33,7 @@
 
 		"cd build &&"
 			" cmake"
-			" -G \"Unix Makefiles\""
+			" -G $CMAKE_GENERATOR"
 			" -D CMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE"
 			" -D WITH_CLI=ON"
 			" -D WITH_STUDIO=OFF"
