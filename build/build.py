@@ -69,13 +69,14 @@ def __buildProject( project, buildDir ) :
 	shutil.copy( config["license"], os.path.join( licenseDir, project ) )
 
 	for patch in glob.glob( "../../patches/*.patch" ) :
-		if not sys.platform == "win32" :
-			subprocess.check_call( "patch -p1 < {patch}".format( patch = patch ), shell = True )
-		else :
-			subprocess.check_call( "git-apply -p1 < {patch}".format( patch = patch ), shell = True )
+		#if not sys.platform == "win32" :
+		subprocess.check_call( "patch -p1 < {patch}".format( patch = patch ), shell = True )
 
 	if sys.platform == "win32" and "LD_LIBRARY_PATH" in config.get( "environment", {} ) :
-		config["environment"]["PATH"] = "{0};{1}".format( config["environment"]["LD_LIBRARY_PATH"], os.environ["PATH"] )
+		environ = config["environment"]["LD_LIBRARY_PATH"].replace( "/", "\\" )
+		#config["environment"]["PATH"] = "{0};{1}".format( environ, os.environ["PATH"] )
+		# Not correct
+		config["environment"]["PATH"] = "{0};{1};{2}".format( environ, "$BUILD_DIR\\bin", os.environ["PATH"] )
 
 	environment = os.environ.copy()
 	for key, value in config.get( "environment", {} ).items() :
@@ -87,16 +88,19 @@ def __buildProject( project, buildDir ) :
 	if not sys.platform == "win32" :
 		environment["CMAKE_GENERATOR"] = "\"Unix Makefiles\""
 	else :
+		#environment["CMAKE_GENERATOR"] = "\"Visual Studio 15 2017 Win64\"" #"\"NMake Makefiles JOM\""
 		environment["CMAKE_GENERATOR"] = "\"NMake Makefiles JOM\""
+		#environment["CMAKE_GENERATOR"] = "\"NMake Makefiles\""
 
-	environment["CMAKE_BUILD_TYPE"] = "Release"
+	#environment["CMAKE_BUILD_TYPE"] = "Release"
+	environment["CMAKE_BUILD_TYPE"] = "RelWithDebInfo"
 
 	if sys.platform == "win32":
 		for environ in config.get( "environment", {} ).itervalues() :
 			# Forward-slashes to backslashes
 			environ = environ.replace( "/", "\\" )
 			# Environment variables differ in Windows
-			environ = environ.replace( "$BUILD_DIR", "%BUILD_DIR%" )
+			#environ = environ.replace( "$BUILD_DIR", "%BUILD_DIR%" )
 
 	for command in config["commands"] :
 		# Some Win32-specific tweaks need to be done to the config files
@@ -110,7 +114,6 @@ def __buildProject( project, buildDir ) :
 			command = command.replace( "$CMAKE_BUILD_TYPE", "%CMAKE_BUILD_TYPE%" )
 			# mv is move
 			command = command.replace( "mv ", "move " )
-			print command
 
 		sys.stderr.write( command + "\n" )
 		subprocess.check_call( command, shell = True, env = environment )
